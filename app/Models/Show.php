@@ -4,10 +4,12 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Show extends Model
 {
-    use HasFactory;
+    use HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $fillable = [
         'title',
@@ -19,30 +21,36 @@ class Show extends Model
         'background_image',
         'is_special',
         'is_active',
-        'location'
+        'location',
     ];
 
-    public function Jock() {
+    public function Jock(): BelongsToMany
+    {
         return $this->belongsToMany(Jock::class);
     }
 
-    public function Timeslot() {
+    public function Timeslot(): HasMany
+    {
         return $this->hasMany(Timeslot::class);
     }
 
-    public function Image() {
+    public function Image(): HasMany
+    {
         return $this->hasMany(Photo::class);
     }
 
-    public function Link() {
+    public function Link(): HasMany
+    {
         return $this->hasMany(Social::class);
     }
 
-    public function Podcast() {
+    public function Podcast(): HasMany
+    {
         return $this->hasMany(Podcast::class);
     }
 
-    public function podcastCount() {
+    public function podcastCount(): int
+    {
         return $this->hasMany(Podcast::class)->count();
     }
 }

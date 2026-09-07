@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Title extends Model
 {
@@ -21,10 +22,11 @@ class Title extends Model
         'articles_main_page_title',
         'podcast_main_page_title',
         'youtube_main_page_title',
-        'location'
+        'location',
     ];
 
-    public function Asset() {
+    public function Asset(): HasMany
+    {
         return $this->hasMany(Asset::class);
     }
 }

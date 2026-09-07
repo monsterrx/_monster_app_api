@@ -3,31 +3,31 @@
 namespace App\Traits;
 
 use App\Models\Jock;
-use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
-trait JockFunctions {
+trait JockFunctions
+{
     use SystemFunctions;
 
-    public function jocksQuery($time, $day)
+    public function jocksQuery(string $time, string $day): Collection
     {
         return Jock::query()
-            ->whereHas('Timeslot', function($builder) use ($time, $day) {
+            ->whereHas('Timeslot', function ($builder) use ($time, $day) {
                 $builder->where('timeslots.deleted_at', '=', null)
                     ->where('end', '>', $time)
                     ->where('start', '<=', $time)
                     ->where('day', '=', $day)
                     ->where('location', $this->getStationCode());
-            })->whereHas('Employee', function($builder) {
+            })->whereHas('Employee', function ($builder) {
                 $builder->where('employees.deleted_at', '=', null);
-            })->whereHas('Show', function($builder) {
+            })->whereHas('Show', function ($builder) {
                 $builder->where('shows.deleted_at', '=', null);
             })->whereNull('deleted_at')
             ->get();
     }
 
-    public function removeTMRJock($id, $time, $day): Collection
+    public function removeTMRJock(int $id, string $time, string $day): Collection
     {
         return DB::table('jock_show')
             ->join('jocks', 'jock_show.jock_id', '=', 'jocks.id')

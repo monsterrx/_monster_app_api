@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Photo extends Model
 {
@@ -21,23 +22,28 @@ class Photo extends Model
         'name',
     ];
 
-    public function Show() {
+    public function Show(): BelongsTo
+    {
         return $this->belongsTo(Show::class);
     }
 
-    public function Jock() {
+    public function Jock(): BelongsTo
+    {
         return $this->belongsTo(Jock::class);
     }
 
-    public function Article() {
+    public function Article(): BelongsTo
+    {
         return $this->belongsTo(Article::class);
     }
 
-    public function Batch() {
+    public function Batch(): BelongsTo
+    {
         return $this->belongsTo(Batch::class);
     }
 
-    public function StudentJock() {
+    public function StudentJock(): BelongsTo
+    {
         return $this->belongsTo(StudentJock::class);
     }
 }

@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Category extends Model
 {
-    use HasFactory;
+    use HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $table = 'categories';
 
@@ -15,10 +16,11 @@ class Category extends Model
         'name',
         'description',
         'icon',
-        'dark_mode_icon'
+        'dark_mode_icon',
     ];
 
-    public function Article() {
+    public function Article(): HasMany
+    {
         return $this->hasMany(Article::class);
     }
 }

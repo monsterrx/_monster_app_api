@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Feature extends Model
 {
@@ -14,10 +15,11 @@ class Feature extends Model
         'content',
         'month',
         'year',
-        'location'
+        'location',
     ];
 
-    public function Indie() {
+    public function Indie(): BelongsTo
+    {
         return $this->belongsTo(Indie::class, 'indieground_id');
     }
 }

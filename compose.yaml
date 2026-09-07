@@ -1,37 +1,43 @@
+name: monster_api_v2
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: httpd:latest
-    container_name: monsterApi_web
+    build: .
+    image: monster-api-v2:local
+    container_name: monsterApiV2_web
+    restart: unless-stopped
     ports:
-      - "9010:80"
-    volumes:
-      - .:/var/www/html/monsterApi
-    networks:
-      - rx931
-
+      - "${APP_PORT:-9010}:80"
+    env_file: .env
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [rx931]
   db:
-    image: mysql:5.7
-    container_name: monsterApi_db
+    build: ./docker/mysql
+    image: monster-api-v2-db:local
+    container_name: monsterApiV2_db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: rxninthr_monster
-      # MYSQL_USER: root
-      MYSQL_PASSWORD: secret
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+      MYSQL_DATABASE: ${DB_DATABASE:-rxninthr_monster}
+      MYSQL_USER: ${DB_USERNAME:-monster_api}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
     ports:
-      - "3310:3306"
+      - "127.0.0.1:${DB_FORWARD_PORT:-3310}:3306"
     volumes:
       - dbdata:/var/lib/mysql
-      - ./docker/mysql/my.cnf:/etc/mysql/conf.d/my.cnf
-    networks:
-      - rx931
-
+      - ${DB_DUMP_PATH}:/docker-entrypoint-initdb.d/01-monster.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysql -h 127.0.0.1 -uroot -e 'SELECT 1' >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [rx931]
 networks:
   rx931:
     driver: bridge
-
 volumes:
   dbdata:

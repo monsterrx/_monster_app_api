@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Outbreak extends Model
 {
@@ -13,10 +14,11 @@ class Outbreak extends Model
         'song_id',
         'dated',
         'track_link',
-        'location'
+        'location',
     ];
 
-    public function Song() {
+    public function Song(): BelongsTo
+    {
         return $this->belongsTo(Song::class);
     }
 }

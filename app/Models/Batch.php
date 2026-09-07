@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Batch extends Model
 {
@@ -16,18 +18,21 @@ class Batch extends Model
         'end_year',
         'description',
         'image',
-        'location'
+        'location',
     ];
 
-    public function Student() {
+    public function Student(): BelongsToMany
+    {
         return $this->belongsToMany(Student::class);
     }
 
-    public function Image() {
+    public function Image(): HasMany
+    {
         return $this->hasMany(Photo::class);
     }
 
-    public function Sponsor() {
+    public function Sponsor(): BelongsToMany
+    {
         return $this->belongsToMany(Sponsor::class);
     }
 }

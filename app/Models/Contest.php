@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Contest extends Model
 {
-    use HasFactory;
+    use HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $table = 'giveaways';
 
@@ -22,10 +23,11 @@ class Contest extends Model
         'image',
         'code',
         'is_active',
-        'location'
+        'location',
     ];
 
-    public function Contestant() {
+    public function Contestant(): BelongsToMany
+    {
         return $this->belongsToMany(Contestant::class, 'contestant_giveaway', 'contestant_id', 'giveaway_id');
     }
 }

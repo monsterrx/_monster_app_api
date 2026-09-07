@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class StudentJockBatch extends Model
 {
@@ -14,10 +15,11 @@ class StudentJockBatch extends Model
     protected $fillable = [
         'batch_number',
         'start_year',
-        'end_year'
+        'end_year',
     ];
 
-    public function Student() {
+    public function Student(): BelongsToMany
+    {
         return $this->belongsToMany(StudentJock::class);
     }
 }

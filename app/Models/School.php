@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class School extends Model
 {
@@ -13,14 +14,16 @@ class School extends Model
         'name',
         'address',
         'seal',
-        'location'
+        'location',
     ];
 
-    public function Gimikboard() {
+    public function Gimikboard(): HasMany
+    {
         return $this->hasMany(Gimmick::class);
     }
 
-    public function Student() {
+    public function Student(): HasMany
+    {
         return $this->hasMany(Student::class);
     }
 }

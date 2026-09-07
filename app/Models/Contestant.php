@@ -8,10 +8,11 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Contestant extends Model implements AuthenticatableContract, CanResetPasswordContract
 {
-    use HasFactory, Authenticatable, CanResetPassword;
+    use Authenticatable, CanResetPassword, HasFactory;
 
     protected $fillable = [
         'phone_number',
@@ -20,10 +21,11 @@ class Contestant extends Model implements AuthenticatableContract, CanResetPassw
         'birthday',
         'city',
         'email',
-        'password'
+        'password',
     ];
 
-    public function Contest() {
+    public function Contest(): BelongsToMany
+    {
         return $this->belongsToMany(Contest::class, 'contestant_giveaway', 'giveaway_id', 'contestant_id');
     }
 }

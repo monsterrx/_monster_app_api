@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Sponsor extends Model
 {
@@ -11,10 +12,11 @@ class Sponsor extends Model
 
     protected $fillable = [
         'name',
-        'remarks'
+        'remarks',
     ];
 
-    public function Batch() {
+    public function Batch(): BelongsToMany
+    {
         return $this->belongsToMany(Batch::class);
     }
 }

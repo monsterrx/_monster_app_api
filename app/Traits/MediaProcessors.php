@@ -2,85 +2,67 @@
 
 namespace App\Traits;
 
-use Illuminate\Support\Env;
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Str;
+use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 
-trait MediaProcessors {
+trait MediaProcessors
+{
     use SystemFunctions;
 
-    public function verifyAudio($fileName) {
-        return ($this->getAppEnvironment() === 'dev' ? 'http://127.0.0.2' : 'https://rx931.com') . '/audios/'.$fileName;
-    }
-
-    public function verifyMobileAsset($fileName, $longPhoto = false, $banner = false, $banner500 = false, $mobileWallpaper = false, $desktopWallpaper = false) {
-        $photoDirectory = $this->getAppUrl() . '/images/_assets/mobile/'.$fileName;
-
-        if($this->doesFileExistsInServer($photoDirectory)) {
-            return $this->getAppUrl() . '/images/_assets/mobile/'.$fileName;
-        } else {
-            if($fileName === null || $fileName === "" || !preg_match('/^[\w&.\-]+\.+[jpeg|jpg|png|webp|jfif|PNG|JPEG|JPG|WEBP|JFIF]+$/', $fileName)) {
-                return $this->getFileName($longPhoto, $banner, $banner500, $mobileWallpaper, $desktopWallpaper);
-            }
-
-            return $this->getFileName($longPhoto, $banner, $banner500, $mobileWallpaper, $desktopWallpaper);
-        }
-    }
-
-    public function verifyPhoto($fileName, $directory, $longPhoto = false, $banner = false, $banner500 = false, $mobileWallpaper = false, $desktopWallpaper = false): string
+    public function verifyAudio(?string $fileName): string
     {
-        $photoDirectory = $this->getAppUrl() . '/images/'.$directory.'/'.$fileName;
-
-        if($this->doesFileExistsInServer($photoDirectory)) {
-            return $this->getAppUrl() . '/images/'.$directory.'/'.$fileName;
-        } else {
-            if($fileName === null || $fileName === "" || !preg_match('/^[\w&.\-]+\.+[jpeg|jpg|png|webp|jfif|PNG|JPEG|JPG|WEBP|JFIF]+$/', $fileName)) {
-                return $this->getFileName($longPhoto, $banner, $banner500, $mobileWallpaper, $desktopWallpaper);
-            }
-
-            return $this->getFileName($longPhoto, $banner, $banner500, $mobileWallpaper, $desktopWallpaper);
-        }
+        return $this->getAppUrl().'/audios/'.$fileName;
     }
 
-    public function getFileName(string $longPhoto, string $banner, string $banner500, string $mobileWallpaper, string $desktopWallpaper): string
+    public function verifyMobileAsset(?string $fileName, bool $longPhoto = false, bool $banner = false, bool $banner500 = false, bool $mobileWallpaper = false, bool $desktopWallpaper = false): string
     {
-        $fileName = 'default.png';
+        return $this->verifyPhoto($fileName, '_assets/mobile', $longPhoto, $banner, $banner500, $mobileWallpaper, $desktopWallpaper);
+    }
 
-        if ($longPhoto) {
-            $fileName = 'default-long.png';
-        } elseif ($banner) {
-            $fileName = 'default-banner.png';
-        } elseif ($banner500) {
-            $fileName = 'default-banner-sm.png';
-        } elseif ($mobileWallpaper) {
-            $fileName = 'mobile-wallpaper-missing.png';
-        } elseif ($desktopWallpaper) {
-            $fileName = 'desktop-wallpaper-missing.png';
+    public function verifyPhoto(?string $fileName, string $directory, bool $longPhoto = false, bool $banner = false, bool $banner500 = false, bool $mobileWallpaper = false, bool $desktopWallpaper = false): string
+    {
+        $fallback = $this->getFileName($longPhoto, $banner, $banner500, $mobileWallpaper, $desktopWallpaper);
+        if (! $fileName || ! preg_match('/^[\w&.\-]+\.(jpe?g|png|webp|jfif|gif|svg)$/i', $fileName)) {
+            return $fallback;
         }
+        $url = $this->getAppUrl().'/images/'.$directory.'/'.$fileName;
 
-        return $this->getAppUrl() . '/images/_assets/' . $fileName;
+        return ! config('station.verify_media') || $this->doesFileExistsInServer($url) ? $url : $fallback;
     }
 
-    public function doesFileExistsInServer($fileUrl) {
-        $response = Http::head($fileUrl);
+    public function getFileName(bool $longPhoto = false, bool $banner = false, bool $banner500 = false, bool $mobileWallpaper = false, bool $desktopWallpaper = false): string
+    {
+        $fileName = match (true) {
+            $longPhoto => 'default-long.png',
+            $banner => 'default-banner.png',
+            $banner500 => 'default-banner-sm.png',
+            $mobileWallpaper => 'mobile-wallpaper-missing.png',
+            $desktopWallpaper => 'desktop-wallpaper-missing.png',
+            default => 'default.png',
+        };
 
-        return $response->status() === 200;
+        return $this->getAppUrl().'/images/_assets/'.$fileName;
     }
 
-    public function replaceSourceText($source) {
-        $search = '../../../../source/';
-
-        $replace = 'https://rx931.com/source/';
-
-        return str_replace($search, $replace, $source);
+    public function doesFileExistsInServer(string $fileUrl): bool
+    {
+        return Cache::remember('media:'.hash('sha256', $fileUrl), 3600, function () use ($fileUrl): bool {
+            try {
+                return Http::connectTimeout(1)->timeout(2)->head($fileUrl)->successful();
+            } catch (ConnectionException) {
+                return false;
+            }
+        });
     }
 
-    public function replaceArticleSourceText($source) {
-        $search = '../../../../Article/';
+    public function replaceSourceText(?string $source): string
+    {
+        return str_replace('../../../../source/', $this->getAppUrl().'/source/', $source ?? '');
+    }
 
-        $replace = 'https://rx931.com/Article/';
-
-        return str_replace($search, $replace, $source);
+    public function replaceArticleSourceText(?string $source): string
+    {
+        return str_replace('../../../../Article/', $this->getAppUrl().'/Article/', $source ?? '');
     }
 }

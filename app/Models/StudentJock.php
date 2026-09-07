@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StudentJock extends Model
 {
@@ -21,19 +24,23 @@ class StudentJock extends Model
         'position',
     ];
 
-    public function Batch() {
+    public function Batch(): BelongsToMany
+    {
         return $this->belongsToMany(StudentJockBatch::class);
     }
 
-    public function School() {
+    public function School(): BelongsTo
+    {
         return $this->belongsTo(School::class);
     }
 
-    public function Link() {
+    public function Link(): HasMany
+    {
         return $this->hasMany(Social::class);
     }
 
-    public function Image() {
+    public function Image(): HasMany
+    {
         return $this->hasMany(Photo::class);
     }
 }

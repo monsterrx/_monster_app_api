@@ -15,6 +15,6 @@ class Header extends Model
         'title',
         'sub_title',
         'link',
-        'location'
+        'location',
     ];
 }

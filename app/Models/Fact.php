@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Fact extends Model
 {
@@ -11,10 +12,11 @@ class Fact extends Model
 
     protected $fillable = [
         'jock_id',
-        'content'
+        'content',
     ];
 
-    public function Jock() {
+    public function Jock(): BelongsTo
+    {
         return $this->belongsTo(Jock::class);
     }
 }

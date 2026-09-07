@@ -16,6 +16,6 @@ class Message extends Model
         'topic',
         'message',
         'is_seen',
-        'location'
+        'location',
     ];
 }

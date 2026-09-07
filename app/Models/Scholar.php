@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Scholar extends Model
 {
@@ -15,11 +16,13 @@ class Scholar extends Model
         'scholar_type',
     ];
 
-    public function Student() {
+    public function Student(): BelongsTo
+    {
         return $this->belongsTo(Student::class);
     }
 
-    public function Batch() {
+    public function Batch(): BelongsTo
+    {
         return $this->belongsTo(Batch::class);
     }
 }

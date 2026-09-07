@@ -5,10 +5,11 @@ namespace App\Traits;
 use App\Models\Chart;
 use App\Models\Outbreak;
 
-trait ChartFunctions {
+trait ChartFunctions
+{
     use SystemFunctions;
 
-    public function getLatestChartDate()
+    public function getLatestChartDate(): ?string
     {
         return Chart::with('Song.Album.Artist')
             ->whereNull('deleted_at')
@@ -19,7 +20,7 @@ trait ChartFunctions {
             ->max('dated');
     }
 
-    public function getLatestDailyChartDate()
+    public function getLatestDailyChartDate(): ?string
     {
         return Chart::with('Song.Album.Artist')
             ->whereNull('deleted_at')
@@ -30,7 +31,8 @@ trait ChartFunctions {
             ->max('dated');
     }
 
-    public function getLatestSouthsidesDate() {
+    public function getLatestSouthsidesDate(): ?string
+    {
         return Chart::whereNull('deleted_at')
             ->where('daily', '=', 0)
             ->where('local', '=', 1)
@@ -39,7 +41,8 @@ trait ChartFunctions {
             ->max('dated');
     }
 
-    public function getLatestOutbreakDate() {
+    public function getLatestOutbreakDate(): ?string
+    {
         return Outbreak::whereNull('deleted_at')
             ->where('location', '=', $this->getStationCode())
             ->select('dated')

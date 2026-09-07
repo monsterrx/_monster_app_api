@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Asset extends Model
 {
@@ -20,10 +21,11 @@ class Asset extends Model
         'article_page_icon',
         'youtube_page_icon',
         'is_dark_mode',
-        'location'
+        'location',
     ];
 
-    public function Title() {
+    public function Title(): BelongsTo
+    {
         return $this->belongsTo(Title::class);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Tally extends Model
 {
@@ -15,10 +16,11 @@ class Tally extends Model
         'chart_id',
         'result',
         'last_result',
-        'dated'
+        'dated',
     ];
 
-    public function Chart() {
+    public function Chart(): BelongsTo
+    {
         return $this->belongsTo(Chart::class);
     }
 }

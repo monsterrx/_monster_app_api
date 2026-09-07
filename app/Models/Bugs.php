@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Bugs extends Model
 {
@@ -12,7 +13,7 @@ class Bugs extends Model
     protected $table = 'reports';
 
     protected $dates = [
-        'deleted_at'
+        'deleted_at',
     ];
 
     protected $fillable = [
@@ -21,10 +22,11 @@ class Bugs extends Model
         'image',
         'employee_id',
         'location',
-        'is_resolved'
+        'is_resolved',
     ];
 
-    public function Employee() {
+    public function Employee(): BelongsTo
+    {
         return $this->belongsTo(Employee::class);
     }
 }

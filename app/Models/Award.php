@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Award extends Model
 {
@@ -17,14 +18,16 @@ class Award extends Model
         'description',
         'year',
         'special',
-        'location'
+        'location',
     ];
 
-    public function Jock() {
+    public function Jock(): BelongsTo
+    {
         return $this->belongsTo(Jock::class);
     }
 
-    public function Show() {
+    public function Show(): BelongsTo
+    {
         return $this->belongsTo(Show::class);
     }
 }

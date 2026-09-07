@@ -4,10 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Podcast extends Model
 {
-    use HasFactory;
+    use HasFactory, \Illuminate\Database\Eloquent\SoftDeletes;
 
     protected $fillable = [
         'show_id',
@@ -15,10 +16,11 @@ class Podcast extends Model
         'date',
         'link',
         'image',
-        'location'
+        'location',
     ];
 
-    public function Show() {
+    public function Show(): BelongsTo
+    {
         return $this->belongsTo(Show::class);
     }
 }
