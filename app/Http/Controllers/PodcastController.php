@@ -1,33 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Traits\MediaProcessors;
+use App\Traits\SystemFunctions;
+use Illuminate\Http\Request;
+use Str;
 use App\Models\Podcast;
 use App\Models\Show;
-use App\Traits\MediaProcessors;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
-class PodcastController extends Controller
-{
-    use MediaProcessors;
+class PodcastController extends Controller {
+    use MediaProcessors, SystemFunctions;
 
-    public function index(Request $request): JsonResponse
-    {
-        $request->validate(['show_id' => ['nullable', 'integer', 'min:1'], 'keyword' => ['nullable', 'string', 'max:200'], 'page' => ['nullable', 'integer', 'min:1']]);
-        $shows = Show::has('Podcast')
-            ->withCount(['Podcast' => function ($query) {
-                $query->whereNull('deleted_at')
-                    ->where('location', $this->getStationCode());
-            }])
-            ->with('Jock')
-            ->whereNull('deleted_at')
-            ->where('location', $this->getStationCode())
-            ->orderBy('podcast_count', 'desc')
-            ->get();
-
+    public function index(Request $request) {
         $podcasts = Podcast::with('Show.Jock')
             ->whereNull('deleted_at')
             ->where('location', $this->getStationCode())
@@ -38,7 +24,7 @@ class PodcastController extends Controller
         $show_id = $request->get('show_id');
         $keyword = $request->get('keyword');
 
-        if ($show_id) {
+        if($show_id) {
             $podcasts = Podcast::query()
                 ->with('Show.Jock')
                 ->whereNull('deleted_at')
@@ -59,22 +45,20 @@ class PodcastController extends Controller
                     ->paginate(8)
                     ->appends([
                         'show_id' => $show_id,
-                        'keyword' => $keyword,
+                        'keyword' => $keyword
                     ]);
             }
 
             $show = Show::query()
                 ->with('Jock')
-                ->where('location', $this->getStationCode())->findOrFail($show_id);
+                ->findOrFail($show_id);
 
-            $show->icon = $this->verifyPhoto($show->icon, 'shows');
             $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
-            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
 
             foreach ($podcasts as $podcast) {
                 $podcast['date'] = date('M d, Y', strtotime($podcast['date']));
                 $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
-                $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
+                $podcast['short_episode'] = mb_strimwidth($podcast['episode'], 0, 16, '...');
                 $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
                 $podcast['stream'] = $podcast->link;
             }
@@ -83,41 +67,33 @@ class PodcastController extends Controller
 
             return response()->json([
                 'show' => $show,
-                'podcasts' => $podcasts,
+                'podcasts' => $podcasts
             ]);
         }
 
         foreach ($podcasts as $podcast) {
             $podcast['date'] = date('M d, Y', strtotime($podcast['date']));
             $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
-            $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
+            $podcast['short_episode'] = mb_strimwidth($podcast['episode'], 0, 16, '...');
             $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
             $podcast['stream'] = $podcast->link;
         }
 
-        foreach ($shows as $show) {
-            $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
-            $show->icon = $this->verifyPhoto($show->icon, 'shows');
-            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
-        }
-
         return response()->json([
-            'shows' => $shows,
             'podcasts' => $podcasts,
-            'next' => $podcasts->nextPageUrl(), // to be removed when the mobile app is released
+            'next' => $podcasts->nextPageUrl() // to be removed when the mobile app is released
         ]);
     }
 
-    public function show(int $id): JsonResponse
-    {
-        $podcast = Podcast::with('Show')->where('location', $this->getStationCode())->findOrFail($id);
+    public function show($id) {
+        $podcast = Podcast::with('Show')->findOrFail($id);
 
         $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
         $podcast['show']['background_image'] = $this->verifyPhoto($podcast['show']['background_image'], 'shows');
         $podcast['stream'] = $podcast->link;
 
         return response()->json([
-            'podcast' => $podcast,
+            'podcast' => $podcast
         ]);
     }
 }
