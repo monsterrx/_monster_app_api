@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\API;
 
 use App\Models\Title;
+use App\Services\ContentSearch;
 use App\Traits\AssetProcessors;
 use App\Traits\ChartFunctions;
 use App\Traits\JockFunctions;
@@ -227,6 +228,7 @@ class MobileAppController extends Controller
     }
 
     public function articles(Request $request) {
+        $request->validate(['keyword' => 'nullable|string|max:160', 'category_id' => 'nullable|integer|min:1']);
         $categories = Category::query()
             ->has('Article', '>', 0)
             ->whereHas('Article', function (Builder $query) {
@@ -237,90 +239,56 @@ class MobileAppController extends Controller
             ->orderBy('name')
             ->get();
 
-        $articles = Article::with('Employee', 'Category')
+        $category_id = $request->get('category_id');
+        $keyword = trim((string) $request->get('keyword', ''));
+        $selectedCategory = null;
+        if ($category_id) {
+            try {
+                $selectedCategory = Category::query()->findOrFail($category_id);
+            } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+                return response()->json(['error' => 'Category not found'], 400);
+            }
+        }
+
+        $query = Article::with('Employee', 'Category')
             ->whereNull('deleted_at')
             ->whereNotNull('published_at')
-            ->where('location', $this->getStationCode())
-            ->orderBy('created_at', 'desc')
-            ->paginate(8);
+            ->where('location', $this->getStationCode());
 
-        // for article filtering
-        $category_id = $request->get('category_id');
-        $keyword = $request->get('keyword');
-
-        if($category_id) {
-            try {
-                $category = Category::query()
-                    ->findOrFail($category_id);
-            } catch (Exception $e) {
-                return response()->json([
-                    'error' => 'Category not found'
-                ], 400);
-            }
-
-            $articles = Article::with('Employee')
-                ->where('category_id', $category_id)
-                ->latest()
-                ->where('location', $this->getStationCode())
-                ->whereNotNull('published_at')
-                ->paginate(8)
-                ->appends('category_id', $category_id);
-
-            if ($keyword) {
-                $articles = Article::with('Employee')
-                    ->where('category_id', $category_id)
-                    ->where(function($query) use ($keyword) {
-                        $query->where('title', 'like', '%'.$keyword.'%')
-                            ->orWhere('heading', 'like', '%'.$keyword.'%')
-                            ->orWhereHas('Employee', function(Builder $query) use ($keyword) {
-                                $query->where('first_name', 'like', '%'.$keyword.'%')
-                                    ->orWhere('last_name', 'like', '%'.$keyword.'%');
-                            });
-                    })
-                    ->whereNotNull('published_at')
-                    ->where('location', $this->getStationCode())
-                    ->orderBy('created_at', 'desc')
-                    ->paginate(8)
-                    ->appends([
-                        'category_id' => $category_id,
-                        'keyword' => $keyword
-                    ]);
-            }
-
-            foreach ($categories as $category) {
-                $category->icon = $this->verifyPhoto($category->icon, '_assets/categories');;
-                $category->dark_mode_icon = $this->verifyPhoto($category->dark_mode_icon, '_assets/categories');;
-            }
-
-            foreach ($articles as $article) {
-                $article->image = $this->verifyPhoto($article->image, 'articles');
-                $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
-                $article->time_passed = $this->timePassedSincePublished($article->published_at);
-            }
-
-            return response()->json([
-                'category' => $category,
-                'articles' => $articles,
-                'next' => $articles->nextPageUrl()
-            ]);
+        if ($category_id) {
+            $query->where('category_id', $category_id);
         }
+        if ($keyword !== '') {
+            ContentSearch::articles($query, $keyword);
+        }
+
+        $articles = $query->orderBy('created_at', 'desc')->paginate(8)
+            ->appends(array_filter([
+                'category_id' => $category_id,
+                'keyword' => $keyword,
+            ], function ($value) { return $value !== null && $value !== ''; }));
 
         foreach ($categories as $category) {
-            $category->icon = $this->verifyPhoto($category->icon, '_assets/categories');;
-            $category->dark_mode_icon = $this->verifyPhoto($category->dark_mode_icon, '_assets/categories');;
+            $category->icon = $this->verifyPhoto($category->icon, '_assets/categories');
+            $category->dark_mode_icon = $this->verifyPhoto($category->dark_mode_icon, '_assets/categories');
         }
-
         foreach ($articles as $article) {
             $article->image = $this->verifyPhoto($article->image, 'articles');
-            $article->author = $article->Employee->first_name . ' ' . $article->Employee->last_name;
+            $article->author = $article->Employee ? trim($article->Employee->first_name . ' ' . $article->Employee->last_name) : '';
             $article->time_passed = $this->timePassedSincePublished($article->published_at);
         }
 
-        return response()->json([
-            'categories' => $categories,
+        $payload = [
             'articles' => $articles,
-            'next' => $articles->nextPageUrl()
-        ]);
+            'next' => $articles->nextPageUrl(),
+            'search' => ['keyword' => $keyword, 'category_id' => $category_id, 'fields' => ['title', 'author']],
+        ];
+        if ($selectedCategory) {
+            $payload['category'] = $selectedCategory;
+        } else {
+            $payload['categories'] = $categories;
+        }
+        return response()->json($payload);
     }
 
     public function viewArticle($id) {
@@ -352,95 +320,71 @@ class MobileAppController extends Controller
     }
 
     public function podcasts(Request $request) {
-        $shows = Show::has('Podcast')
-            ->withCount(['Podcast' => function ($query) {
-            $query->whereNull('deleted_at')
-                ->where('location', $this->getStationCode());
-            }])
-            ->with('Jock')
-            ->whereNull('deleted_at')
-            ->where('location', $this->getStationCode())
-            ->orderBy('podcast_count', 'desc')
-            ->get();
-
-        $podcasts = Podcast::with('Show.Jock')
-            ->whereNull('deleted_at')
-            ->where('location', $this->getStationCode())
-            ->orderBy('date', 'desc')
-            ->paginate(8);
-
-        // for podcast filtering
+        $request->validate(['keyword' => 'nullable|string|max:160', 'show_id' => 'nullable|integer|min:1']);
         $show_id = $request->get('show_id');
-        $keyword = $request->get('keyword');
-
-        if($show_id) {
-            $podcasts = Podcast::query()
-                ->with('Show.Jock')
+        $keyword = trim((string) $request->get('keyword', ''));
+        $show = null;
+        if ($show_id) {
+            $show = Show::with('Jock')
                 ->whereNull('deleted_at')
-                ->where('show_id', $show_id)
                 ->where('location', $this->getStationCode())
-                ->orderBy('date', 'desc')
-                ->paginate(8)
-                ->appends('show_id', $show_id);
-
-            if ($keyword) {
-                $podcasts = Podcast::query()
-                    ->with('Show.Jock')
-                    ->whereNull('deleted_at')
-                    ->where('show_id', $show_id)
-                    ->where('episode', 'like', '%'.$keyword.'%')
-                    ->where('location', $this->getStationCode())
-                    ->orderBy('date', 'desc')
-                    ->paginate(8)
-                    ->appends([
-                        'show_id' => $show_id,
-                        'keyword' => $keyword
-                    ]);
-            }
-
-            $show = Show::query()
-                ->with('Jock')
                 ->findOrFail($show_id);
-
-            $show->icon = $this->verifyPhoto($show->icon, 'shows');
-            $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
-            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
-
-            foreach ($podcasts as $podcast) {
-                $podcast['date'] = date('M d, Y', strtotime($podcast['date']));
-                $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
-                $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
-                $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
-                $podcast['stream'] = $podcast->link;
-            }
-
-            $podcasts->appends('show_id', $show_id);
-
-            return response()->json([
-                'show' => $show,
-                'podcasts' => $podcasts
-            ]);
         }
 
+        $query = Podcast::with('Show.Jock')
+            ->whereNull('deleted_at')
+            ->where('location', $this->getStationCode());
+        if ($show_id) {
+            $query->where('show_id', $show_id);
+        }
+        if ($keyword !== '') {
+            ContentSearch::podcasts($query, $keyword);
+        }
+        $podcasts = $query->orderBy('date', 'desc')->orderBy('id', 'desc')->paginate(8)
+            ->appends(array_filter([
+                'show_id' => $show_id,
+                'keyword' => $keyword,
+            ], function ($value) { return $value !== null && $value !== ''; }));
+
+        $showImages = [];
         foreach ($podcasts as $podcast) {
-            $podcast['date'] = date('M d, Y', strtotime($podcast['date']));
-            $podcast['time_elapsed'] = $this->timePassedSincePublished($podcast['date']);
-            $podcast['short_episode'] = Str::limit($podcast['episode'], 16);
-            $podcast['image'] = $this->verifyPhoto($podcast['image'], 'podcasts');
-            $podcast['stream'] = $podcast->link;
+            $podcast->time_elapsed = $this->timePassedSincePublished($podcast->date);
+            $podcast->date = date('M d, Y', strtotime($podcast->date));
+            $podcast->short_episode = Str::limit($podcast->episode, 16);
+            $podcast->image = $this->verifyPhoto($podcast->image, 'podcasts');
+            $podcast->stream = $podcast->link;
+            if ($podcast->Show) {
+                $relatedShow = $podcast->Show;
+                if (!isset($showImages[$relatedShow->id])) {
+                    $showImages[$relatedShow->id] = $this->verifyPhoto($relatedShow->background_image, 'shows');
+                }
+                $relatedShow->background_image = $showImages[$relatedShow->id];
+            }
         }
 
-        foreach ($shows as $show) {
-            $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
-            $show->icon = $this->verifyPhoto($show->icon, 'shows');
-            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
-        }
-
-        return response()->json([
-            'shows' => $shows,
+        $payload = [
             'podcasts' => $podcasts,
-            'next' => $podcasts->nextPageUrl() // to be removed when the mobile app is released
-        ]);
+            'next' => $podcasts->nextPageUrl(),
+            'search' => ['keyword' => $keyword, 'show_id' => $show_id, 'fields' => ['title', 'show_name']],
+        ];
+        if ($show) {
+            $show->icon = $this->verifyPhoto($show->icon, 'shows');
+            $show->background_image = $this->verifyPhoto($show->background_image, 'shows');
+            $show->header_image = $this->verifyPhoto($show->header_image, 'shows');
+            $payload['show'] = $show;
+        } else {
+            $shows = Show::has('Podcast')->withCount(['Podcast' => function ($query) {
+                    $query->whereNull('deleted_at')->where('location', $this->getStationCode());
+                }])->with('Jock')->whereNull('deleted_at')
+                ->where('location', $this->getStationCode())->orderBy('podcast_count', 'desc')->get();
+            foreach ($shows as $availableShow) {
+                $availableShow->background_image = $this->verifyPhoto($availableShow->background_image, 'shows');
+                $availableShow->icon = $this->verifyPhoto($availableShow->icon, 'shows');
+                $availableShow->header_image = $this->verifyPhoto($availableShow->header_image, 'shows');
+            }
+            $payload['shows'] = $shows;
+        }
+        return response()->json($payload);
     }
 
     public function viewPodcast($id) {

@@ -1,9 +1,10 @@
-FROM php:7.4-apache
+FROM php:8.2-fpm-alpine
 
 # Set working directory
 WORKDIR /var/www/html/monsterApi
 
-# Install system dependencies
+# Bullseye is archived. Disable expiry checks only for these frozen repositories;
+# APT still verifies their signatures and package checksums.
 RUN apt-get update && apt-get install -y \
     build-essential \
     libpng-dev \
@@ -18,10 +19,8 @@ RUN apt-get update && apt-get install -y \
     curl \
     libonig-dev \
     libzip-dev \
-    npm
-
-# Clear cache
-RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+    npm \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
 RUN docker-php-ext-configure gd --with-freetype --with-jpeg \
